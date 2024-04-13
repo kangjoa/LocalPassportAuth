@@ -9,7 +9,7 @@ const bodyParser = require('body-parser');
 const expressSession = require('express-session')({
   secret: 'secret',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
 });
 
 app.use(bodyParser.json());
@@ -30,12 +30,15 @@ app.use(passport.session());
 const mongoose = require('mongoose');
 const passportLocalMongoose = require('passport-local-mongoose');
 
-mongoose.connect('mongodb://localhost/MyDatabase', { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect('mongodb://localhost/MyDatabase', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 const Schema = mongoose.Schema;
 const UserDetail = new Schema({
   username: String,
-  password: String
+  password: String,
 });
 
 UserDetail.plugin(passportLocalMongoose);
@@ -53,49 +56,81 @@ passport.deserializeUser(UserDetails.deserializeUser());
 const connectEnsureLogin = require('connect-ensure-login');
 
 app.post('/login', (req, res, next) => {
-  passport.authenticate('local',
-  (err, user, info) => {
+  console.log('login requested');
+  passport.authenticate('local', (err, user, info) => {
     if (err) {
       return next(err);
     }
 
-    if (!user) { 
-      return res.redirect('/login?info=' + info); 
+    if (!user) {
+      return res.redirect('/login?info=' + info);
     }
 
-    req.logIn(user, function(err) {
+    req.logIn(user, function (err) {
       if (err) {
         return next(err);
       }
 
       return res.redirect('/');
     });
-
   })(req, res, next);
 });
 
-app.get('/login',
-  (req, res) => res.sendFile('html/login.html',
-  { root: __dirname })
+app.get('/login', (req, res) =>
+  res.sendFile('html/login.html', { root: __dirname }),
 );
 
-app.get('/',
-  connectEnsureLogin.ensureLoggedIn(),
-  (req, res) => res.sendFile('html/index.html', {root: __dirname})
+app.get('/', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.sendFile('html/index.html', { root: __dirname });
+  } else {
+    res.sendFile('html/index.html', { root: __dirname });
+  }
+});
+
+app.get('/private', connectEnsureLogin.ensureLoggedIn(), (req, res) =>
+  res.sendFile('html/private.html', { root: __dirname }),
 );
 
-app.get('/private',
-  connectEnsureLogin.ensureLoggedIn(),
-  (req, res) => res.sendFile('html/private.html', {root: __dirname})
+app.get('/user', connectEnsureLogin.ensureLoggedIn(), (req, res) =>
+  res.send({ user: req.user }),
 );
 
-app.get('/user',
-  connectEnsureLogin.ensureLoggedIn(),
-  (req, res) => res.send({user: req.user})
-);
+// LOG OUT
+app.post('/logout', function (req, res) {
+  console.log('logout requested');
+  req.logout();
+  res.redirect('/login');
+});
+
+// SIGN UP
+app.get('/signup', function (req, res) {
+  // Send the signup HTML file
+  res.sendFile('html/signup.html', { root: __dirname });
+});
+
+app.post('/signup', function (req, res, next) {
+  // Create a new user instance with the provided username
+  const newUser = new UserDetails({ username: req.body.username });
+
+  // Register the new user with the provided password
+  UserDetails.register(newUser, req.body.password, function (err, user) {
+    if (err) {
+      // Handle registration errors
+      console.log('Error while registering user:', err);
+      return res.redirect('/signup?error=' + err.message);
+    }
+
+    // After registration, authenticate the user
+    passport.authenticate('local')(req, res, function () {
+      // After successful authentication, redirect to the main page
+      res.redirect('/');
+    });
+  });
+});
 
 /* REGISTER SOME USERS */
 
-UserDetails.register({username:'paul', active: false}, 'paul');
-UserDetails.register({username:'jay', active: false}, 'jay');
-UserDetails.register({username:'roy', active: false}, 'roy');
+// UserDetails.register({username:'paul', active: false}, 'paul');
+// UserDetails.register({username:'jay', active: false}, 'jay');
+// UserDetails.register({username:'roy', active: false}, 'roy');

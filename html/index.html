@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <title> Home </title>
+  <title>Home</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
   <div class="message-box">
     <h1 id="welcome-message"></h1>
+    <a href="/signup">Register</a>
+    <a href="/login">Login</a>
+    <form action="/logout" method="post">
+      <button type="submit">Logout</button>
+    </form>
     <a href="/private">Go to private area</a>
   </div>
 
@@ -24,4 +30,5 @@
     req.send();
   </script>
 </body>
+
 </html>
